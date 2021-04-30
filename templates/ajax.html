@@ -1,0 +1,190 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
+    <title>AJAX</title>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center alert alert-danger">AJAX Project!</h2>
+        <div class="row">
+            <div class="col-sm-4">
+                <h3 class="text-center alert alert-info">Create a new entry!</h3>
+                <form action="" class="form">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <div class="form-group">
+                            <label for="" class="name">Name</label>
+                            <input type="text" class="form-control" id="name" placeholder="name" value="">
+                        </div>
+                        <div class="form-group">
+                            <label for="" class="email">Email</label>
+                            <input type="text" class="form-control" id="email" placeholder="email" value="">
+                        </div>
+                        <div class="form-group">
+                            <label for="" class="password">Password</label>
+                            <input type="password" class="form-control" id="password" value="">
+                        </div>
+                        <div class="form-group mt-2">
+                            <button type="button" class="btn btn-success form-control" id="save" value="save">Save</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="col-sm-1"></div>
+            <div class="col-sm-7">
+                <h3 class="text-center alert alert-info">All the entries are here!</h3>
+                <div class="row">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Password</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in ajaxlist %}
+                            <tr>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.email }}</td>
+                                <td>{{ item.password }}</td>
+                                <td>
+                                    <button class="btn btn-info edit btn-sm" value='{{ item.id }}'>Edit</button>
+                                    <button class="btn btn-danger delete btn-sm" value='{{ item.id }}'>Delete</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <input type="text" name="identifier" value="">
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.min.js" integrity="sha384-j0CNLUeiqtyaRmlzUHCPZ+Gy5fQu0dQ6eZ/xAww941Ai1SxSY+0EQqNXNE6DZiVc" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.1/dist/umd/popper.min.js" integrity="sha384-SR1sx49pcuLnqZUnnPwx6FCym0wLsk5JZuNx2bPPENzswTNFaQU1RDvt3wT4gWFG" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+
+    <script>
+        // let csrfmiddlewaretoken = $('.form')[0].children[0].value;
+        let csrfmiddlewaretoken = $('input[name=csrfmiddlewaretoken]').val();
+
+        $('#save').click(function() {
+
+            let identifier = $('input[name=identifier]')
+
+            let name = $('#name').val();
+            let email = $('#email').val();
+            let password = $('#password').val();
+
+            if (name == "") {
+                alert("fill up the name field")
+            } else if (email == "") {
+                alert("fill up the email field")
+            } else if (password == "") {
+                alert("fill up the password field")
+            } else {
+
+
+                let data_to_server = {
+                    name: name,
+                    email: email,
+                    password: password,
+                    identifier: identifier.val(),
+                    csrfmiddlewaretoken: csrfmiddlewaretoken
+                };
+
+                $.ajax({
+                    url: "{% url 'ajaxCall' %}",
+                    method: 'POST',
+                    data: data_to_server,
+                    // either pass the csrf token in header or we can pass it into the data as parameter we did above
+                    // headers: {
+                    //     'X-CSRFToken': csrfmiddlewaretoken
+                    // },
+                    success: function(response) {
+
+
+                        let tableItem = ''
+
+                        let appendItem = response.allRecords
+                        for (i = 0; i < appendItem.length; i++) {
+                            tableItem +=
+                                `
+                              <tr>
+                                  <td>${ appendItem[i].name }</td>
+                                  <td>${ appendItem[i].email }</td>
+                                  <td>${ appendItem[i].password }</td>
+                                  <td>
+                                      <button class="btn btn-info edit btn-sm" id="edit" value=${appendItem[i].id}>Edit</button>
+                                      <button class="btn btn-danger delete btn-sm" id="delete" value=${appendItem[i].id}>Delete</button>
+                                   </td>
+                              </tr>
+                            `
+                        }
+
+                        $('tbody').html(tableItem);
+
+                        identifier.val('')
+
+                        $('.form')[0].reset();
+                    }
+                })
+
+            };
+        });
+
+        $('tbody').on("click", ".edit", function() {
+
+            console.log("you clicked to edit the entry");
+
+            let edit = $(this).attr("value")
+
+            let identifier = $('input[name=identifier]')
+
+            identifier.val(edit)
+
+            let parentTr = $(this)[0].parentElement.parentElement
+
+            let name = parentTr.childNodes[0].nextElementSibling.innerHTML
+            let email = parentTr.childNodes[2].nextElementSibling.innerHTML
+            let password = parentTr.childNodes[4].nextElementSibling.innerHTML
+
+
+            $("#name")[0]["value"] = name
+            $("#email")[0]["value"] = email
+            $("#password")[0]["value"] = password
+
+        })
+        $('tbody').on("click", ".delete", function() {
+            console.log("you clicked to delete the entry");
+            let deleteData = $(this).attr("value")
+
+            let data_to_server = {
+                deleteData: deleteData,
+                csrfmiddlewaretoken: csrfmiddlewaretoken
+            };
+
+            $.ajax({
+                url: "{% url 'delete' %}",
+                method: 'POST',
+                data: data_to_server,
+                success: function(response) {
+                    console.log(response.response);
+                }
+            })
+            $(this).closest("tr").fadeOut();
+        });
+    </script>
+
+</body>
+
+</html>
